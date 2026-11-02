@@ -3,6 +3,8 @@
 
 use std::rc::Rc;
 
+use crate::gotime::is_leap;
+
 pub const ALPHA: i64 = i64::MIN;
 pub const OMEGA: i64 = i64::MAX;
 
@@ -431,10 +433,6 @@ fn tzset_rule(s: &[u8]) -> Option<(Rule, &[u8])> {
         s = rest;
     }
     Some((r, s))
-}
-
-fn is_leap(y: i64) -> bool {
-    y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)
 }
 
 const DAYS_BEFORE: [i64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];

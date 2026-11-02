@@ -881,11 +881,17 @@ pub fn parse_float(s: &[u8], bit_size: i64) -> Result<f64, (f64, NumError)> {
             // A decimal literal: Rust's parser is correctly rounded, as Go's is.
             let lit: String = s[..r.i].iter().filter(|&&c| c != b'_').map(|&c| c as char).collect();
             if is32 {
-                let f: f32 = lit.parse().unwrap_or(0.0);
+                let f: f32 = match lit.parse() {
+                    Ok(f) => f,
+                    Err(_) => return Err((0.0, syntax(s))),
+                };
                 let ovf = f.is_infinite();
                 (f as f64, r.i, if ovf { Some(range(&s[..r.i])) } else { None })
             } else {
-                let f: f64 = lit.parse().unwrap_or(0.0);
+                let f: f64 = match lit.parse() {
+                    Ok(f) => f,
+                    Err(_) => return Err((0.0, syntax(s))),
+                };
                 let ovf = f.is_infinite();
                 (f, r.i, if ovf { Some(range(&s[..r.i])) } else { None })
             }

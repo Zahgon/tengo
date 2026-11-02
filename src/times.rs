@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::gotime::*;
 use crate::objects::*;
-use crate::stdlib::ORD;
+use crate::stdlib::{check_args, ORD};
 
 const ORDINALS: [&str; 8] = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
 
@@ -27,13 +27,6 @@ fn arg_s(args: &[Object], i: usize) -> TResult<Vec<u8>> {
         return Err(TErr::arg(ORDINALS[i], "string(compatible)", &args[i]));
     }
     Ok(s)
-}
-
-fn nargs(args: &[Object], n: usize) -> TResult<()> {
-    if args.len() != n {
-        return Err(TErr::WrongNumArguments);
-    }
-    Ok(())
 }
 
 fn time_obj(t: GoTime) -> Object {
@@ -130,7 +123,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "sleep",
             user_fn("sleep", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let d = arg_i(args, 0)?;
                 if d > 0 {
                     std::thread::sleep(std::time::Duration::from_nanos(d as u64));
@@ -141,7 +134,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "parse_duration",
             user_fn("parse_duration", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let s = arg_s(args, 0)?;
                 // Go assigns the error to the named err result: a runtime error.
                 match parse_duration(&s) {
@@ -153,7 +146,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "since",
             user_fn("since", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(Object::Int(now().sub(&t)))
             }),
@@ -161,7 +154,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "until",
             user_fn("until", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(Object::Int(t.sub(&now())))
             }),
@@ -169,42 +162,42 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "duration_hours",
             user_fn("duration_hours", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 Ok(Object::Float(duration_hours(arg_i(args, 0)?)))
             }),
         ),
         (
             "duration_minutes",
             user_fn("duration_minutes", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 Ok(Object::Float(duration_minutes(arg_i(args, 0)?)))
             }),
         ),
         (
             "duration_nanoseconds",
             user_fn("duration_nanoseconds", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 Ok(Object::Int(arg_i(args, 0)?))
             }),
         ),
         (
             "duration_seconds",
             user_fn("duration_seconds", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 Ok(Object::Float(duration_seconds(arg_i(args, 0)?)))
             }),
         ),
         (
             "duration_string",
             user_fn("duration_string", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 Ok(new_str(duration_string(arg_i(args, 0)?)))
             }),
         ),
         (
             "month_string",
             user_fn("month_string", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 Ok(new_str(month_string(arg_i(args, 0)?)))
             }),
         ),
@@ -233,14 +226,14 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "now",
             user_fn("now", |args| {
-                nargs(args, 0)?;
+                check_args(args, 0)?;
                 Ok(time_obj(now()))
             }),
         ),
         (
             "parse",
             user_fn("parse", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let layout = arg_s(args, 0)?;
                 let value = arg_s(args, 1)?;
                 match parse(&layout, &value) {
@@ -252,7 +245,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "unix",
             user_fn("unix", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let s = arg_i(args, 0)?;
                 let n = arg_i(args, 1)?;
                 Ok(time_obj(GoTime::unix(s, n)))
@@ -261,7 +254,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "add",
             user_fn("add", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let t = arg_time(args, 0)?;
                 let d = arg_i(args, 1)?;
                 Ok(time_obj(t.add(d)))
@@ -270,7 +263,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "sub",
             user_fn("sub", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let t = arg_time(args, 0)?;
                 let u = arg_time(args, 1)?;
                 Ok(Object::Int(t.sub(&u)))
@@ -279,7 +272,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "add_date",
             user_fn("add_date", |args| {
-                nargs(args, 4)?;
+                check_args(args, 4)?;
                 let t = arg_time(args, 0)?;
                 let y = arg_i(args, 1)?;
                 let m = arg_i(args, 2)?;
@@ -290,7 +283,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "after",
             user_fn("after", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let t = arg_time(args, 0)?;
                 let u = arg_time(args, 1)?;
                 Ok(Object::Bool(t.after(&u)))
@@ -299,7 +292,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "before",
             user_fn("before", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let t = arg_time(args, 0)?;
                 let u = arg_time(args, 1)?;
                 Ok(Object::Bool(t.before(&u)))
@@ -318,7 +311,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "time_format",
             user_fn("time_format", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let t = arg_time(args, 0)?;
                 let f = arg_s(args, 1)?;
                 Ok(new_str(t.format(&f)))
@@ -327,7 +320,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "time_location",
             user_fn("time_location", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(new_str(t.loc.name()))
             }),
@@ -335,7 +328,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "time_string",
             user_fn("time_string", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(new_str(t.string()))
             }),
@@ -343,7 +336,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "is_zero",
             user_fn("is_zero", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(Object::Bool(t.is_zero()))
             }),
@@ -351,7 +344,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "to_local",
             user_fn("to_local", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(time_obj(t.with_loc(Loc::Local)))
             }),
@@ -359,7 +352,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "to_utc",
             user_fn("to_utc", |args| {
-                nargs(args, 1)?;
+                check_args(args, 1)?;
                 let t = arg_time(args, 0)?;
                 Ok(time_obj(t.with_loc(Loc::Utc)))
             }),
@@ -367,7 +360,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
         (
             "in_location",
             user_fn("in_location", |args| {
-                nargs(args, 2)?;
+                check_args(args, 2)?;
                 let t = arg_time(args, 0)?;
                 let name = arg_s(args, 1)?;
                 match load_location(&name) {
@@ -383,7 +376,7 @@ pub fn times_module() -> Vec<(&'static str, Object)> {
 
 fn time_int(name: &str, f: fn(&GoTime) -> i64) -> Object {
     user_fn(name, move |args| {
-        nargs(args, 1)?;
+        check_args(args, 1)?;
         let t = arg_time(args, 0)?;
         Ok(Object::Int(f(&t)))
     })

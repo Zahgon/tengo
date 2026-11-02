@@ -545,10 +545,10 @@ impl<'a> Decoder<'a> {
             b'"' => Ok(new_str(unquote_bytes(item).unwrap_or_default())),
             _ => {
                 if is_float {
-                    let n = match parse_float(item, 64) {
-                        Ok(f) => f,
-                        Err((f, _)) => f,
-                    };
+                    // decode.go discards ParseFloat's error too: an out-of-range number decodes
+                    // to the infinity ParseFloat returns with it, and the scanner has already
+                    // rejected anything that is not a number.
+                    let n = parse_float(item, 64).unwrap_or_else(|(f, _)| f);
                     return Ok(Object::Float(n));
                 }
                 match parse_int(item, 10, 64) {
