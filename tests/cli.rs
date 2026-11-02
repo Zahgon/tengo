@@ -152,3 +152,53 @@ fn enum_module() {
     let out = stdout_of("fmt := import(\"fmt\")\nenum := import(\"enum\")\nfmt.println(enum.map([1, 2], func(k, v) { return v * 10 }))\n");
     assert_eq!(out, "[10, 20]\n");
 }
+
+fn tengo_in_scratch(args: &[&str]) -> (i32, String, String) {
+    let dir = scratch_dir();
+    std::fs::write(dir.join("data.bin"), "").unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_tengo")).args(args).current_dir(&dir).output().unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+#[test]
+fn unknown_flag_is_a_usage_error() {
+    let (code, _, err) = tengo_in_scratch(&["-bogus"]);
+    assert_eq!(code, 2);
+    assert!(err.starts_with("flag provided but not defined: -bogus\nUsage of tengo:\n"), "{}", err);
+}
+
+#[test]
+fn unsupported_modes_say_so() {
+    let (code, _, err) = tengo_in_scratch(&[]);
+    assert_eq!(code, 1);
+    assert!(err.contains("interactive mode is not supported"), "{}", err);
+    let (code, _, err) = tengo_in_scratch(&["-o", "out.bin"]);
+    assert_eq!(code, 1);
+    assert!(err.contains("-o"), "{}", err);
+    let (code, _, err) = tengo_in_scratch(&["data.bin"]);
+    assert_eq!(code, 1);
+    assert!(err.contains("compiled bytecode is not supported"), "{}", err);
+}
+
+#[test]
+fn closed_stdout_ends_the_run_with_status_141() {
+    use std::process::Stdio;
+    let dir = scratch_dir();
+    let script = "fmt := import(\"fmt\")\nfor i := 0; i < 200000; i++ { fmt.println(\"xxxxxxxxxxxxxxxx\") }\n";
+    std::fs::write(dir.join("main.tengo"), script).unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_tengo"))
+        .arg("main.tengo")
+        .current_dir(&dir)
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    drop(child.stdout.take());
+    let status = child.wait().unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(status.code(), Some(141));
+}

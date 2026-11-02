@@ -471,6 +471,11 @@ impl Compiler {
         self.allow_file_import = enable;
     }
 
+    /// Compiler.SetImportDir: the directory file imports resolve against.
+    pub fn set_import_dir(&mut self, dir: &str) {
+        self.import_dir = dir.to_string();
+    }
+
     fn errorf(&self, pos: Pos, msg: String) -> CompileFail {
         let p = self.shared.borrow().fset.borrow_mut().position(pos);
         CompileFail::Error(format!("Compile Error: {}\n\tat {}", msg, p))

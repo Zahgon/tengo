@@ -719,11 +719,13 @@ fn float_binary_op(a: f64, op: Token, rhs: &Object) -> TResult<Object> {
         Object::Int(b) => *b as f64,
         _ => return Err(TErr::InvalidOperator),
     };
+    // objects.go returns the receiver when the result compares equal, so 0.0 * -1 stays 0.
+    let keep = |r: f64| Ok(Object::Float(if r == a { a } else { r }));
     match op {
-        Token::Add => Ok(Object::Float(a + b)),
-        Token::Sub => Ok(Object::Float(a - b)),
-        Token::Mul => Ok(Object::Float(a * b)),
-        Token::Quo => Ok(Object::Float(a / b)),
+        Token::Add => keep(a + b),
+        Token::Sub => keep(a - b),
+        Token::Mul => keep(a * b),
+        Token::Quo => keep(a / b),
         Token::Less => cmp_result(a < b),
         Token::Greater => cmp_result(a > b),
         Token::LessEq => cmp_result(a <= b),

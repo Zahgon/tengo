@@ -1,3 +1,4 @@
 dist/
 
-.idea/target
+.idea/
+target/

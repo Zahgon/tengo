@@ -490,26 +490,6 @@ fn skip<'a>(value: &'a [u8], prefix: &[u8]) -> Result<&'a [u8], &'a [u8]> {
     Ok(value)
 }
 
-fn leading_int(s: &[u8]) -> Result<(u64, &[u8]), ()> {
-    let mut x: u64 = 0;
-    let mut i = 0;
-    while i < s.len() {
-        let c = s[i];
-        if !c.is_ascii_digit() {
-            break;
-        }
-        if x > (1u64 << 63) / 10 {
-            return Err(());
-        }
-        x = x * 10 + (c - b'0') as u64;
-        if x > 1u64 << 63 {
-            return Err(());
-        }
-        i += 1;
-    }
-    Ok((x, &s[i..]))
-}
-
 fn atoi(s: &[u8]) -> Result<i64, ()> {
     let mut s = s;
     let mut neg = false;

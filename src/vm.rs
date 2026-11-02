@@ -114,6 +114,11 @@ impl Vm {
     }
 
     /// Run: executes the main function and formats a runtime error with its call stack.
+    /// The global at `index`, as Go's tests read VM.globals after a run.
+    pub fn global(&self, index: usize) -> Object {
+        self.globals[index].clone()
+    }
+
     pub fn run(&mut self) -> Result<(), RunFail> {
         match self.run_loop() {
             Ok(()) => Ok(()),

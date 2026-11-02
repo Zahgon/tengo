@@ -1,7 +1,8 @@
 //! Go's time.Time and time.Duration as Tengo uses them: instants as unix seconds plus
 //! nanoseconds with a location (UTC, Local or a fixed zone), Go layout formatting and parsing,
-//! and Duration's String/ParseDuration. The graded environment runs with TZ=UTC, so Local has
-//! offset 0, zone abbreviation "UTC", and (as Go falls back to UTC for TZ=UTC) the name "UTC".
+//! and Duration's String/ParseDuration. This port carries no time zone database: Local has offset
+//! 0, zone abbreviation "UTC" and the name "UTC", which is what Go does under TZ=UTC. Any other
+//! TZ setting is not honoured.
 
 use std::rc::Rc;
 
@@ -738,7 +739,7 @@ pub fn time_quote(s: &[u8]) -> Vec<u8> {
     buf
 }
 
-fn leading_int(s: &[u8]) -> Result<(u64, &[u8]), ()> {
+pub fn leading_int(s: &[u8]) -> Result<(u64, &[u8]), ()> {
     let mut x: u64 = 0;
     let mut i = 0;
     while i < s.len() {

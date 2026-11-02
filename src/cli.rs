@@ -22,6 +22,8 @@ fn go_panic(msg: &str) -> i32 {
     2
 }
 
+const USAGE_FLAGS: &str = "Usage of tengo:\n  -help\n    \tShow help\n  -o string\n    \tCompile output file\n  -resolve\n    \tResolve relative import paths\n  -version\n    \tShow version";
+
 fn do_help() {
     let text = "Usage:\n\n\ttengo [flags] {input-file}\n\nFlags:\n\n\t-o        compile output file\n\t-version  show version\n\nExamples:\n\n\ttengo\n\n\t          Start Tengo REPL\n\n\ttengo myapp.tengo\n\n\t          Compile and run source file (myapp.tengo)\n\t          Source file must have .tengo extension\n\n\ttengo -o myapp myapp.tengo\n\n\t          Compile source file (myapp.tengo) into bytecode file (myapp)\n\n\ttengo myapp\n\n\t          Run bytecode file (myapp)\n\n\n";
     crate::out::write(text.as_bytes());
@@ -49,13 +51,25 @@ pub fn run(args: Vec<String>) -> i32 {
                     return 0;
                 }
                 "resolve" => {}
-                _ => {}
+                "o" => {
+                    eprint_line("compiling to a file (-o) is not supported by this port");
+                    return 1;
+                }
+                _ => {
+                    // The flag package's handling of an unknown flag.
+                    eprint_line(&format!("flag provided but not defined: -{}", name));
+                    eprint_line(USAGE_FLAGS);
+                    return 2;
+                }
             }
         }
         i += 1;
     }
     let input = match rest.first() {
-        None => return 0,
+        None => {
+            eprint_line("the interactive mode is not supported by this port; pass a .tengo file");
+            return 1;
+        }
         Some(f) => f.clone(),
     };
     let mut data = match std::fs::read(&input) {
@@ -76,8 +90,7 @@ pub fn run(args: Vec<String>) -> i32 {
         None => "",
     };
     if ext != ".tengo" {
-        // RunCompiled: a gob-encoded bytecode file is not supported by this build.
-        eprint_line("unexpected EOF");
+        eprint_line(&format!("running compiled bytecode is not supported by this port: {}", input));
         return 1;
     }
     compile_and_run(data, &input_abs)
