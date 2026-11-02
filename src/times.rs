@@ -1,5 +1,5 @@
 //! The times module (stdlib/times.go) and Go's time.Parse. The clock functions (now, since,
-//! until, sleep) read the real clock; named locations other than UTC and Local are unknown.
+//! until, sleep) read the real clock; named locations come from the time zone database.
 
 use std::rc::Rc;
 
@@ -45,19 +45,12 @@ fn now() -> GoTime {
     GoTime::unix(d.as_secs() as i64, d.subsec_nanos() as i64)
 }
 
-/// time.LoadLocation for the zones this build knows.
+/// time.LoadLocation.
 fn load_location(name: &[u8]) -> Result<Loc, Vec<u8>> {
     match name {
         b"" | b"UTC" => Ok(Loc::Utc),
         b"Local" => Ok(Loc::Local),
-        _ => {
-            if name.windows(2).any(|w| w == b"..") || name.first() == Some(&b'/') || name.contains(&b'\\') {
-                return Err(b"time: invalid location name".to_vec());
-            }
-            let mut m = b"unknown time zone ".to_vec();
-            m.extend_from_slice(name);
-            Err(m)
-        }
+        _ => crate::gozone::load_named(&String::from_utf8_lossy(name)).map(Loc::Zone),
     }
 }
 
@@ -1027,8 +1020,9 @@ pub fn parse(alayout: &[u8], avalue: &[u8]) -> Result<GoTime, Vec<u8>> {
     if zone_offset != -1 {
         let t = GoTime::date(year, month, day, hour, min, sec, nsec, Loc::Utc);
         let t = GoTime { sec: t.sec - zone_offset, nsec: t.nsec, loc: Loc::Utc };
-        // Local is UTC here: name "UTC", offset 0.
-        if zone_offset == 0 && (zone_name.is_empty() || zone_name == b"UTC") {
+        // Use Local when it has this offset at that instant, as time.Parse does.
+        let found = Loc::Local.lookup(t.sec);
+        if found.offset == zone_offset && (zone_name.is_empty() || found.name == zone_name) {
             return Ok(t.with_loc(Loc::Local));
         }
         return Ok(t.with_loc(Loc::Fixed { name: zone_name, offset: zone_offset }));
@@ -1037,6 +1031,9 @@ pub fn parse(alayout: &[u8], avalue: &[u8]) -> Result<GoTime, Vec<u8>> {
         let t = GoTime::date(year, month, day, hour, min, sec, nsec, Loc::Utc);
         if zone_name == b"UTC" {
             return Ok(t.with_loc(Loc::Local));
+        }
+        if let Some(offset) = crate::gozone::local_zone().lookup_name(&zone_name, t.sec) {
+            return Ok(GoTime { sec: t.sec - offset, nsec: t.nsec, loc: Loc::Local });
         }
         let mut offset = 0;
         if zone_name.len() > 3 && &zone_name[..3] == b"GMT" {

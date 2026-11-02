@@ -59,6 +59,9 @@ fn failed(e: CompileFail) -> String {
 /// Compiles and runs `src` with a predefined global `out`, and returns `out`, as Go's
 /// traceCompileRun does. File imports resolve against `dir`.
 pub fn eval(src: &str, dir: Option<&PathBuf>) -> Result<Object, String> {
+    // The Go tests' expected times were recorded under TZ=UTC.
+    static UTC: std::sync::Once = std::sync::Once::new();
+    UTC.call_once(|| std::env::set_var("TZ", "UTC"));
     let fset = SourceFileSet::new();
     let file = fset.borrow_mut().add_file("test", -1, src.len() as i64);
     let parsed = Parser::new(fset.clone(), file, src.as_bytes().to_vec()).parse_file();

@@ -1,8 +1,7 @@
 //! Go's time.Time and time.Duration as Tengo uses them: instants as unix seconds plus
 //! nanoseconds with a location (UTC, Local or a fixed zone), Go layout formatting and parsing,
-//! and Duration's String/ParseDuration. This port carries no time zone database: Local has offset
-//! 0, zone abbreviation "UTC" and the name "UTC", which is what Go does under TZ=UTC. Any other
-//! TZ setting is not honoured.
+//! and Duration's String/ParseDuration. Local and named zones come from the system's time zone
+//! database (see gozone.rs); `TZ` selects Local as it does in Go, and UTC is the fallback.
 
 use std::rc::Rc;
 
@@ -27,6 +26,7 @@ pub enum Loc {
     Utc,
     Local,
     Fixed { name: Vec<u8>, offset: i64 },
+    Zone(Rc<crate::gozone::Zone>),
 }
 
 impl Loc {
@@ -34,17 +34,20 @@ impl Loc {
     pub fn name(&self) -> Vec<u8> {
         match self {
             Loc::Utc => b"UTC".to_vec(),
-            Loc::Local => b"UTC".to_vec(),
+            Loc::Local => crate::gozone::local_zone().name.clone(),
             Loc::Fixed { name, .. } => name.clone(),
+            Loc::Zone(z) => z.name.clone(),
         }
     }
 
-    /// (zone abbreviation, offset seconds) at an instant.
-    pub fn lookup(&self) -> (Vec<u8>, i64) {
+    /// Location.lookup: the zone in effect at an instant, in unix seconds.
+    pub fn lookup(&self, sec: i64) -> crate::gozone::Lookup {
+        use crate::gozone::{local_zone, Lookup, ALPHA, OMEGA};
         match self {
-            Loc::Utc => (b"UTC".to_vec(), 0),
-            Loc::Local => (b"UTC".to_vec(), 0),
-            Loc::Fixed { name, offset } => (name.clone(), *offset),
+            Loc::Utc => Lookup { name: b"UTC".to_vec(), offset: 0, start: ALPHA, end: OMEGA },
+            Loc::Local => local_zone().lookup(sec),
+            Loc::Fixed { name, offset } => Lookup { name: name.clone(), offset: *offset, start: ALPHA, end: OMEGA },
+            Loc::Zone(z) => z.lookup(sec),
         }
     }
 }
@@ -156,7 +159,16 @@ impl GoTime {
         let (day, hour) = norm(day, hour, 24);
         let days = days_from_civil(year, month, 1) + (day - 1);
         let mut unix = days * 86400 + hour * 3600 + min * 60 + sec;
-        let (_, offset) = loc.lookup();
+        // As time.Date: guess the offset from the wall clock read as UTC, then correct it if the
+        // resulting instant falls outside the span that offset holds for.
+        let found = loc.lookup(unix);
+        let mut offset = found.offset;
+        if offset != 0 {
+            let utc = unix - offset;
+            if utc < found.start || utc >= found.end {
+                offset = loc.lookup(utc).offset;
+            }
+        }
         unix -= offset;
         GoTime { sec: unix, nsec, loc }
     }
@@ -213,8 +225,8 @@ impl GoTime {
 
     /// Local seconds (unix seconds shifted by the zone offset), the zone name and offset.
     fn local(&self) -> (i64, Vec<u8>, i64) {
-        let (name, offset) = self.loc.lookup();
-        (self.sec + offset, name, offset)
+        let found = self.loc.lookup(self.sec);
+        (self.sec + found.offset, found.name, found.offset)
     }
 
     /// (year, month, day)

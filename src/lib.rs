@@ -13,6 +13,7 @@ pub mod goslice;
 pub mod gostr;
 pub mod gotables;
 pub mod gotime;
+pub mod gozone;
 pub mod json;
 pub mod objects;
 pub mod out;

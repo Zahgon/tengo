@@ -14,6 +14,7 @@ counterpart, because this port is a command and not a Go library.
 | `symbol_table_test.go` | `tests/symbol_table.rs` | Define and resolve across scopes and blocks |
 | `objects_test.go` | `tests/objects.rs` | Type names, truthiness, string forms, binary operators, equality |
 | `builtins_test.go` | `tests/builtins.rs` | The delete, splice and range tables and the freeze cases, called from a script |
+| The 2 `Pacific/Auckland` cases of `stdlib/times_test.go` | `tests/timezone.rs` | They need a system time zone database, so that file skips itself without one; it also checks `TZ` for Local |
 | `stdlib/stdlib_test.go`, `text_test.go`, `text_regexp_test.go`, `json_test.go`, `times_test.go`, `base64_test.go`, `hex_test.go`, `fmt_test.go` | `tests/stdlib.rs` | Each module call, made from a script |
 
 ## Not carried over
@@ -29,4 +30,3 @@ counterpart, because this port is a command and not a Go library.
 | `TestStripCR` | Comment tokens: this port's scanner has no `ScanComments` mode |
 | 70 VM cases | They register Go callbacks or custom Go types, or set an allocation limit, none of which a script can express |
 | 11 cases of `TestReplaceLimit`, `TestTextRepeat`, `TestBytesN`, `TestRangeN`, `TestString` | They lower package-level size limits, which are constants here |
-| 2 cases of `TestTimes` | `Pacific/Auckland`: this port has no time zone database, a known gap from the Go build |
