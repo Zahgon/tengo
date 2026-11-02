@@ -739,21 +739,6 @@ fn encode_string(b: &mut Vec<u8>, val: &[u8]) {
     b.push(b'"');
 }
 
-fn base64_std(src: &[u8]) -> Vec<u8> {
-    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = Vec::new();
-    for chunk in src.chunks(3) {
-        let v = (chunk[0] as u32) << 16
-            | (*chunk.get(1).unwrap_or(&0) as u32) << 8
-            | *chunk.get(2).unwrap_or(&0) as u32;
-        out.push(A[(v >> 18 & 63) as usize]);
-        out.push(A[(v >> 12 & 63) as usize]);
-        out.push(if chunk.len() > 1 { A[(v >> 6 & 63) as usize] } else { b'=' });
-        out.push(if chunk.len() > 2 { A[(v & 63) as usize] } else { b'=' });
-    }
-    out
-}
-
 /// json.Encode
 pub fn encode(o: &Object) -> Result<Vec<u8>, Vec<u8>> {
     let mut b = Vec::new();
@@ -787,7 +772,7 @@ pub fn encode(o: &Object) -> Result<Vec<u8>, Vec<u8>> {
         Object::Bool(v) => b.extend_from_slice(if *v { b"true" } else { b"false" }),
         Object::Bytes(v) => {
             b.push(b'"');
-            b.extend_from_slice(&base64_std(&v.to_vec()));
+            b.extend_from_slice(&crate::stdlib::base64_std(&v.to_vec()));
             b.push(b'"');
         }
         Object::Char(c) => b.extend_from_slice(c.to_string().as_bytes()),

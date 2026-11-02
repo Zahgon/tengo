@@ -930,7 +930,11 @@ impl Compiler {
             if !name_file.ends_with(ext) {
                 name_file.push_str(ext);
             }
-            path_file = abs_path(&join_path(&self.import_dir, &name_file));
+            // As Go does, a path that cannot be made absolute is treated as not found.
+            path_file = match abs_path(&join_path(&self.import_dir, &name_file)) {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
             match std::fs::metadata(&path_file) {
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                 _ => return Ok(path_file),
@@ -1361,12 +1365,12 @@ pub fn join_path(a: &str, b: &str) -> String {
 }
 
 /// filepath.Abs
-pub fn abs_path(p: &str) -> String {
+pub fn abs_path(p: &str) -> Result<String, std::io::Error> {
     if p.starts_with('/') {
-        return clean_path(p);
+        return Ok(clean_path(p));
     }
-    let cwd = std::env::current_dir().map(|d| d.to_string_lossy().to_string()).unwrap_or_default();
-    clean_path(&format!("{}/{}", cwd, p))
+    let cwd = std::env::current_dir()?;
+    Ok(clean_path(&format!("{}/{}", cwd.to_string_lossy(), p)))
 }
 
 /// filepath.Dir

@@ -9,6 +9,8 @@ use crate::parser::Parser;
 use crate::source::SourceFileSet;
 use crate::vm::{RunFail, Vm};
 
+/// A failed write to stderr is ignored, as cmd/tengo ignores fmt.Fprintln's result: there is
+/// nowhere left to report it.
 fn eprint_line(s: &str) {
     let mut e = std::io::stderr();
     let _ = e.write_all(s.as_bytes());
@@ -79,7 +81,13 @@ pub fn run(args: Vec<String>) -> i32 {
             return 1;
         }
     };
-    let input_abs = abs_path(&input);
+    let input_abs = match abs_path(&input) {
+        Ok(p) => p,
+        Err(e) => {
+            eprint_line(&format!("Error file path: {}", e));
+            return 1;
+        }
+    };
     if data.len() > 1 && &data[..2] == b"#!" {
         data[0] = b'/';
         data[1] = b'/';

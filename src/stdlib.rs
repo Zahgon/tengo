@@ -262,6 +262,11 @@ fn fmt_module() -> Vec<(&'static str, Object)> {
 const STD_ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 const URL_ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
+/// encoding/base64 StdEncoding.EncodeToString.
+pub fn base64_std(src: &[u8]) -> Vec<u8> {
+    b64_encode(src, STD_ALPHABET, true)
+}
+
 fn b64_encode(src: &[u8], alphabet: &[u8; 64], pad: bool) -> Vec<u8> {
     let mut out = Vec::with_capacity(src.len().div_ceil(3) * 4);
     let mut i = 0;
